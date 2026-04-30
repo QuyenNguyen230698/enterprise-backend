@@ -48,7 +48,13 @@ app.use(
 );
 app.use(
   cors({
-    origin: ["http://localhost:4995", "http://localhost:3000"],
+    origin: [
+      "http://localhost:4995",
+      "http://localhost:3000",
+      "https://emtools.site",
+      "https://www.emtools.site",
+      "https://enterprise-meeting.pages.dev",
+    ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
