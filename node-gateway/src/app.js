@@ -34,9 +34,10 @@ const exitInterviewRoutes = require("./routes/exit-interview.route");
 const { authMiddleware } = require("./middleware/auth.middleware");
 
 const app = express();
+app.set("trust proxy", 1); // Tin tưởng Nginx proxy phía trước
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" }, // Cho phép mọi domain kết nối trong môi trường dev
+  cors: { origin: "*" },
 });
 
 // 1. Bảo mật Header & CORS

@@ -3,11 +3,11 @@ const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const createError = require("http-errors");
 
-const getOAuthClient = () => {
+const getOAuthClient = (redirectUri) => {
   return new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    "http://localhost:4995/callback"
+    redirectUri
   );
 };
 
@@ -18,8 +18,8 @@ const getOAuthClient = () => {
  */
 exports.googleLogin = async (req, res, next) => {
   try {
-    const { code } = req.body;
-    const client = getOAuthClient();
+    const { code, redirect_uri } = req.body;
+    const client = getOAuthClient(redirect_uri || process.env.GOOGLE_REDIRECT_URI || "http://localhost:4995/callback");
 
     if (!code) {
       throw createError(400, "Google Auth Code is required.");
