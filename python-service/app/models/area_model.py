@@ -25,7 +25,6 @@ class Area(Base):
 
     __table_args__ = (
         UniqueConstraint("tenant_id", "name", name="uq_area_tenant_name"),
-        Index("ix_areas_tenant_id", "tenant_id"),
     )
 
 

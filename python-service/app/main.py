@@ -48,9 +48,9 @@ def _status_colour(status: int) -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Auto-create all tables on startup (checkfirst=True để không lỗi nếu đã tồn tại)
+    # Auto-create all tables on startup
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all, checkfirst=True)
+        await conn.run_sync(Base.metadata.create_all)
         # Lightweight schema migration for existing databases.
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS e_code VARCHAR"))
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS dept_code VARCHAR"))
