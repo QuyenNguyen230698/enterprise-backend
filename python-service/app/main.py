@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
+from fastapi.openapi.utils import get_openapi
 from app.api.v1 import area_route, room_route, user_route, meeting_route, tenant_route, role_route, email_config_route, profile_route, template_route, email_list_route, campaign_route, notification_route, ticket_route, offboarding_route, asset_handover_route, job_handover_route, exit_interview_route
 from app.db.database import engine
 from app.db.base import Base
@@ -110,8 +111,33 @@ app = FastAPI(
     description="Core business logic: Rooms, Areas, Users, Meetings & Zoom/Teams integration.",
     version="2.0.0",
     docs_url="/docs",
-    lifespan=lifespan
+    lifespan=lifespan,
+    swagger_ui_parameters={"persistAuthorization": True},
 )
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    }
+    for path in schema["paths"].values():
+        for method in path.values():
+            method.setdefault("security", [{"BearerAuth": []}])
+    app.openapi_schema = schema
+    return schema
+
+app.openapi = custom_openapi
 
 Path("uploads").mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory="uploads"), name="static")
