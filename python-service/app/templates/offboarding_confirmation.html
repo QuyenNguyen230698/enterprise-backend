@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #333;
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1);
+    }
+    .header-bar {
+      background-color: #064e3b;
+      padding: 24px 30px;
+    }
+    .header-bar h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.3px;
+    }
+    .header-bar p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: #a7f3d0;
+    }
+    .body {
+      padding: 28px 30px;
+    }
+    .greeting {
+      font-size: 14px;
+      color: #374151;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+    .info-table tr:not(:last-child) td {
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .info-table td {
+      padding: 10px 14px;
+    }
+    .info-table td.label {
+      background-color: #f9fafb;
+      font-weight: 600;
+      color: #6b7280;
+      width: 48%;
+    }
+    .info-table td.value {
+      color: #111827;
+    }
+    .info-table td.value.highlight {
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+    .info-table td.value.success {
+      color: #059669;
+      font-weight: 700;
+    }
+    .handover-box {
+      background-color: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+    }
+    .handover-box .title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 10px;
+    }
+    .handover-box ul {
+      margin: 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    .handover-box ul li {
+      font-size: 12px;
+      color: #b45309;
+      padding: 4px 0;
+    }
+    .handover-box ul li::before {
+      content: "• ";
+      font-weight: bold;
+    }
+    .notice-box {
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 12px;
+      color: #b91c1c;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .footer-note {
+      font-size: 11px;
+      color: #9ca3af;
+      font-style: italic;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .signature {
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.6;
+    }
+    .signature strong {
+      color: #064e3b;
+    }
+    .footer {
+      background-color: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+      padding: 14px 30px;
+      font-size: 11px;
+      color: #9ca3af;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header-bar">
+      <h1>Xác nhận đơn thôi việc</h1>
+      <p>HRM System — Enterprise Meeting</p>
+    </div>
+
+    <div class="body">
+      <p class="greeting">
+        Kính gửi <strong>{{ employee_name }}</strong>,<br /><br />
+        Đơn xin thôi việc của bạn (<strong>{{ application_ref }}</strong>) đã được
+        <strong>Tổng Giám Đốc phê duyệt</strong>. Dưới đây là thông tin xác nhận chính thức:
+      </p>
+
+      <table class="info-table">
+        <tr>
+          <td class="label">Mã đơn</td>
+          <td class="value">{{ application_ref }}</td>
+        </tr>
+        <tr>
+          <td class="label">Ngày nộp đơn</td>
+          <td class="value">{{ resignation_date }}</td>
+        </tr>
+        <tr>
+          <td class="label">Ngày làm việc cuối (LWD)</td>
+          <td class="value highlight">{{ last_working_day }}</td>
+        </tr>
+        {% if department %}
+        <tr>
+          <td class="label">Bộ phận</td>
+          <td class="value">{{ department }}</td>
+        </tr>
+        {% endif %}
+        {% if job_title %}
+        <tr>
+          <td class="label">Chức danh</td>
+          <td class="value">{{ job_title }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td class="label">Dự kiến thanh toán</td>
+          <td class="value success">{{ payment_date }}</td>
+        </tr>
+      </table>
+
+      <div class="handover-box">
+        <div class="title">⚠ Các biểu mẫu bàn giao cần hoàn tất trước {{ last_working_day }}:</div>
+        <ul>
+          <li>QF-HRA-17 — Bàn giao công việc (xác nhận bởi Quản Lý)</li>
+          <li>QF-HRA-12 — Bàn giao tài sản (xác nhận bởi HR)</li>
+          <li>QF-HRA-11 — Phỏng vấn nghỉ việc (xác nhận bởi HR)</li>
+        </ul>
+      </div>
+
+      <div class="notice-box">
+        Vui lòng trả lại <strong>thẻ BHYT</strong> và <strong>đồ bảo hộ lao động</strong>
+        trong vòng 03 ngày kể từ ngày làm việc cuối cùng.
+      </div>
+
+      <p class="footer-note">
+        Nếu có thắc mắc, vui lòng liên hệ Phòng Nhân Sự.<br />
+        Email này được gửi tự động từ HRM System và không cần phản hồi trực tiếp.
+      </p>
+
+      <p class="signature">
+        Trân trọng,<br />
+        <strong>Phòng Nhân Sự — Enterprise Meeting</strong>
+      </p>
+    </div>
+
+    <div class="footer">
+      © Enterprise Meeting · HRM System · Email tự động, vui lòng không reply.
+    </div>
+
+  </div>
+</body>
+</html>

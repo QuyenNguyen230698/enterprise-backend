@@ -1,0 +1,48 @@
+# Environment variables - KHÔNG được commit lên git
+.env
+.env.*
+!.env.example
+
+# Node dependencies
+node_modules/
+node-gateway/node_modules/
+
+# Python
+python-service/venv/
+python-service/__pycache__/
+python-service/**/__pycache__/
+python-service/**/*.pyc
+python-service/**/*.pyo
+*.pyc
+*.pyo
+__pycache__/
+
+# File upload của user (dữ liệu runtime, không phải source code)
+python-service/uploads/
+
+# Logs
+*.log
+logs/
+combined.log
+error.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Docker
+.dockerignore
+
+# Deploy script (chỉ dùng trên VPS)
+deploy.sh
+
+# TypeScript cache
+*.tsbuildinfo
+
+# npm
+npm-debug.log*
+package-lock.json

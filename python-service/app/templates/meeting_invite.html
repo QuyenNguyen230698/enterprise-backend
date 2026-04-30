@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; background-color: #f8fafc; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
+        .header { font-size: 24px; font-weight: bold; margin-bottom: 5px; color: #000; }
+        .action { color: #d93025; font-weight: bold; margin-bottom: 20px; font-size: 14px; }
+        .greeting { font-size: 14px; margin-bottom: 15px; }
+        .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .table td { padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .label { width: 150px; font-weight: 500; color: #64748b; }
+        .value { color: #0f172a; font-weight: 600; }
+        .online-block { background: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .online-title { font-weight: bold; margin-bottom: 12px; font-size: 14px; color: #334155; }
+        .btn-zoom { display: inline-block; background-color: #0A4834; color: #ffffff !important; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; }
+        .btn-accept { display: inline-block; background-color: #166534; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; margin-right: 10px; }
+        .btn-decline { display: inline-block; background-color: #991b1b; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; }
+        .passcode { font-size: 14px; font-weight: bold; color: #334155; margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 10px; }
+        .footer { margin-top: 40px; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+        .no-link { color: inherit !important; text-decoration: none !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Meeting Invitation</div>
+        <div class="action">Action Required</div>
+        <div class="greeting">
+            Hi <span class="no-link">{{ to_email }}</span>,<br>
+            Please confirm your attendance:
+        </div>
+
+        <table class="table">
+            <tr>
+                <td class="label">Meeting Title</td>
+                <td class="value">{{ topic }}</td>
+            </tr>
+            <tr>
+                <td class="label">Room</td>
+                <td class="value">{{ room_name }} ({{ area_name }})</td>
+            </tr>
+            <tr>
+                <td class="label">Date</td>
+                <td class="value">{{ date }}</td>
+            </tr>
+            <tr>
+                <td class="label">Time</td>
+                <td class="value">{{ start_time }} to {{ end_time }}</td>
+            </tr>
+            <tr>
+                <td class="label">Type</td>
+                <td class="value">internal</td>
+            </tr>
+        </table>
+
+        {% if join_url %}
+        <div class="online-block">
+            <div class="online-title">Online Meeting</div>
+            <a href="{{ join_url }}" class="btn-zoom">Join Zoom Meeting</a>
+            <div class="passcode">Passcode: {{ password }}</div>
+        </div>
+        {% endif %}
+
+        <div style="margin-bottom: 25px;">
+            <a href="{{ backend_url }}/api/v1/meetings/invites/{{ invite_id }}/respond?token={{ token }}&action=accepted" class="btn-accept">✓ Accept</a>
+            <a href="{{ backend_url }}/api/v1/meetings/invites/{{ invite_id }}/respond?token={{ token }}&action=declined" class="btn-decline">✕ Decline</a>
+        </div>
+
+        <div class="footer">
+            This is an automated message from ENTERPRISEMEETING.<br>
+            Please do not reply to this email.
+        </div>
+    </div>
+</body>
+</html>
