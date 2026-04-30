@@ -45,6 +45,7 @@ services:
       - EMAIL_USER=${EMAIL_USER}
       - EMAIL_PASS=${EMAIL_PASS}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - BASE_URL=${BASE_URL}
     depends_on:
       - db
     networks:

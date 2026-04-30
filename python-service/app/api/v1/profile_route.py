@@ -25,7 +25,7 @@ LEGACY_SIGNATURE_UPLOAD_DIR = Path("uploads/signhub_signatures")
 
 
 def _signature_base_url() -> str:
-    return os.getenv("BASE_URL", "http://localhost:8000").rstrip("/")
+    return os.getenv("BASE_URL", "").rstrip("/")
 
 
 def _migrate_legacy_signature_files() -> None:
@@ -324,7 +324,7 @@ async def upload_avatar(
     filename = f"{uuid.uuid4().hex}.{ext}"
     (upload_dir / filename).write_bytes(content)
 
-    base_url = os.getenv("BASE_URL", "http://localhost:8000")
+    base_url = os.getenv("BASE_URL", "").rstrip("/")
     avatar_url = f"{base_url}/static/avatars/{filename}"
 
     user = await _get_user(portal_user_id, db)
