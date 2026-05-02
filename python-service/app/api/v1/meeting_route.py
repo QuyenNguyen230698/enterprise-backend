@@ -1,5 +1,6 @@
 import uuid
 import asyncio
+import logging
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +23,7 @@ from app.schemas.meeting_schema import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 # ─── Helpers ─────────────────────────────────────────────────────
@@ -535,3 +537,40 @@ async def respond_to_invite_get(invite_id: int, token: str, action: str, db: Asy
     template_name = "invite_accepted.html" if action == "accepted" else "invite_declined.html"
     html = jinja_env.get_template(template_name).render(**ctx)
     return HTMLResponse(html)
+
+
+@router.post("/internal/cleanup-zoom-meetings", status_code=status.HTTP_200_OK)
+async def internal_cleanup_zoom_meetings(db: AsyncSession = Depends(get_db)):
+    """
+    Internal API: quét tất cả meeting đã kết thúc nhưng phòng Zoom vẫn còn tồn tại,
+    gọi Zoom API để end + delete phòng đó. Dữ liệu zoom trong DB (zoom_join_url, zoom_meeting_id)
+    được giữ nguyên để lịch sử vẫn còn — chỉ phòng trên Zoom bị xóa.
+    Được gọi bởi cron job hàng ngày từ enterprise-redis.
+    """
+    from sqlalchemy import text
+
+    # Lấy các meeting đã kết thúc (kết hợp date + end_time < now UTC+7) và còn zoom_meeting_id
+    result = await db.execute(
+        text(
+            "SELECT id, zoom_meeting_id FROM meetings "
+            "WHERE zoom_meeting_id IS NOT NULL "
+            "  AND (date || ' ' || end_time)::timestamp < (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh') "
+            "  AND status != 'cancelled'"
+        )
+    )
+    rows = result.fetchall()
+
+    cleaned = 0
+    failed = 0
+
+    for row in rows:
+        meeting_db_id, zoom_id = row[0], row[1]
+        success = await end_zoom_meeting(zoom_id)
+        if success:
+            cleaned += 1
+        else:
+            logger.error(f"[ZoomCleanup] Failed to delete Zoom meeting {zoom_id} (meeting id={meeting_db_id})")
+            failed += 1
+
+    logger.info(f"[ZoomCleanup] Done: cleaned={cleaned}, failed={failed}")
+    return {"cleaned": cleaned, "failed": failed}

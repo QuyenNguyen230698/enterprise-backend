@@ -333,6 +333,9 @@ const proxyService = {
   async internalSendInvite(inviteId) {
     return request("post", `/api/v1/meetings/internal/send-invite/${inviteId}`);
   },
+  async internalCleanupZoom() {
+    return request("post", `/api/v1/meetings/internal/cleanup-zoom-meetings`);
+  },
   async respondInviteGet(inviteId, query) {
     const params = new URLSearchParams(query).toString();
     return request(

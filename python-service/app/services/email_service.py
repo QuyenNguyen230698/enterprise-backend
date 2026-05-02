@@ -132,7 +132,7 @@ async def send_meeting_cancellation(to_email: str, cc_emails: str, meeting_detai
         meeting_details["to_email"] = to_email
         template = jinja_env.get_template("meeting_cancelled.html")
         html_content = template.render(**meeting_details)
-        
+
         msg = MIMEMultipart("alternative")
         msg["Subject"] = f"[MeetingRoom] {meeting_details.get('topic')}"
         msg["From"] = EMAIL_USER

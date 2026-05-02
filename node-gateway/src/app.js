@@ -162,6 +162,11 @@ app.post(
   internalAuth,
   meetingController.internalSendInvite,
 );
+app.post(
+  "/api/v1/meetings/internal/cleanup-zoom-meetings",
+  internalAuth,
+  meetingController.internalCleanupZoom,
+);
 
 // Public invite response routes — no auth required (links sent via email)
 app.get("/api/v1/meetings/invites/:inviteId/respond", meetingController.respondInviteGet);

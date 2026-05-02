@@ -3,16 +3,16 @@ from typing import Optional
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Gateway City - Meeting API"
-    
+
     # --- CẤU HÌNH POSTGRESQL ---
     POSTGRES_USER: str = "admin"
     POSTGRES_PASSWORD: str = "secretpassword"
-    # Khi chạy local không có Docker thì là localhost. 
+    # Khi chạy local không có Docker thì là localhost.
     # Khi chạy trong Docker thì đổi thành tên service (VD: "postgres")
-    POSTGRES_SERVER: str = "localhost" 
+    POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: str = "5432"
     POSTGRES_DB: str = "meeting_db"
-    
+
     # --- CẤU HÌNH ZOOM SERVER-TO-SERVER OAUTH ---
     ZOOM_ACCOUNT_ID: str = ""
     ZOOM_CLIENT_ID: str = ""

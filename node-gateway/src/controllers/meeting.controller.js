@@ -120,6 +120,15 @@ const meetingController = {
       res.status(400).json({ error: e.message });
     }
   },
+
+  async internalCleanupZoom(req, res) {
+    try {
+      const result = await proxyService.internalCleanupZoom();
+      res.json(result);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  },
 };
 
 module.exports = meetingController;
