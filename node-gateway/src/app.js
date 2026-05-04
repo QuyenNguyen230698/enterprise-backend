@@ -195,6 +195,9 @@ app.use("/api/v1/exit-interview", authMiddleware, exitInterviewRoutes);
 const emailConfigController = require("./controllers/email-config.controller");
 app.post("/api/v1/admin/system-email-config/send-template-test", authMiddleware, emailConfigController.sendTemplateTest);
 
+// Public: send test email using caller-supplied Gmail credentials (no auth required)
+app.post("/api/v1/public/email/send-test", emailConfigController.publicSendTest);
+
 // Kích hoạt Real-time Socket
 meetingSocket(io);
 notificationSocket(io);

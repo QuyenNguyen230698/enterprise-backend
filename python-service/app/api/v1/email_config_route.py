@@ -56,6 +56,14 @@ class SendTemplateTestRequest(BaseModel):
     html: str
 
 
+class PublicSendTestRequest(BaseModel):
+    to: EmailStr
+    subject: Optional[str] = "Email Test - Email Builder"
+    html: str
+    gmailEmail: EmailStr
+    gmailAppPassword: str
+
+
 # ─── Helpers ──────────────────────────────────────────────────────
 
 def _to_response(cfg: EmailConfig) -> dict:
@@ -379,5 +387,39 @@ async def send_template_test(
         raise HTTPException(status_code=400, detail="Xác thực thất bại — kiểm tra lại email/App Password")
     except aiosmtplib.SMTPConnectError:
         raise HTTPException(status_code=400, detail="Không thể kết nối SMTP server — kiểm tra host/port")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Gửi thất bại: {str(e)}")
+
+
+@router.post("/public/email/send-test")
+async def public_send_test(body: PublicSendTestRequest):
+    """
+    Public endpoint (không cần auth) — dùng Gmail + App Password do user cung cấp để gửi email test từ editor.
+    """
+    import aiosmtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = body.subject
+        msg["From"] = body.gmailEmail
+        msg["To"] = body.to
+        msg.attach(MIMEText(body.html, "html"))
+
+        await aiosmtplib.send(
+            msg,
+            hostname="smtp.gmail.com",
+            port=587,
+            username=body.gmailEmail,
+            password=body.gmailAppPassword,
+            start_tls=True,
+        )
+        return {"success": True, "message": "Email đã được gửi thành công!"}
+
+    except aiosmtplib.SMTPAuthenticationError:
+        raise HTTPException(status_code=400, detail="Xác thực Gmail thất bại — kiểm tra lại Gmail và App Password")
+    except aiosmtplib.SMTPConnectError:
+        raise HTTPException(status_code=400, detail="Không thể kết nối Gmail SMTP")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Gửi thất bại: {str(e)}")

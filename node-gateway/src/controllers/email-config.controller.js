@@ -115,6 +115,20 @@ const emailConfigController = {
     }
   },
 
+  // POST /public/email/send-test (không cần auth)
+  async publicSendTest(req, res) {
+    try {
+      const { to, subject, html, gmailEmail, gmailAppPassword } = req.body;
+      if (!to || !html || !gmailEmail || !gmailAppPassword) {
+        return res.status(422).json({ success: false, message: "to, html, gmailEmail và gmailAppPassword là bắt buộc" });
+      }
+      const data = await proxyService.publicSendTest({ to, subject, html, gmailEmail, gmailAppPassword });
+      res.json(data);
+    } catch (e) {
+      res.status(400).json({ success: false, message: e.message });
+    }
+  },
+
   // POST /email-config/validate-capacity
   // Kiểm tra capacity gửi email trước khi send campaign
   async validateCapacity(req, res) {

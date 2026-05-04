@@ -307,6 +307,9 @@ const proxyService = {
   async sendTemplateTest(portalUserId, data) {
     return request("post", `/api/v1/admin/system-email-config/send-template-test?portal_user_id=${encodeURIComponent(portalUserId)}`, data);
   },
+  async publicSendTest(data) {
+    return request("post", `/api/v1/public/email/send-test`, data);
+  },
 
   // ─── Notifications ───────────────────────────────────────────
   async listNotifications(portalUserId, tenantId, query = {}) {
