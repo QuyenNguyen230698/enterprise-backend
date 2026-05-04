@@ -65,8 +65,11 @@ async def _next_role_id(db: AsyncSession) -> str:
             num = int(rid)
             if num >= base:
                 numeric_ids.append(num)
-    next_num = max(numeric_ids, default=base) + 1
-    return str(next_num)
+    existing = set(numeric_ids)
+    candidate = base + 1
+    while candidate in existing:
+        candidate += 1
+    return str(candidate)
 
 
 # ─── Permissions ─────────────────────────────────────────────────

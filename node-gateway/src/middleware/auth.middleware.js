@@ -36,7 +36,8 @@ const authMiddleware = (req, res, next) => {
 const requirePermission = (permissionName) => (req, res, next) => {
   if (req.isSuperAdmin) return next();
   const perms = req.permissions || {};
-  if (perms[permissionName]?.includes("view")) return next();
+  const key = Object.keys(perms).find(k => k.toLowerCase() === permissionName.toLowerCase());
+  if (key && perms[key]?.includes("view")) return next();
   return next(createError(403, `Bạn không có quyền truy cập '${permissionName}'.`));
 };
 
