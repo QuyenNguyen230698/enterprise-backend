@@ -31,6 +31,7 @@ const offboardingRoutes = require("./routes/offboarding.route");
 const assetHandoverRoutes = require("./routes/asset-handover.route");
 const jobHandoverRoutes = require("./routes/job-handover.route");
 const exitInterviewRoutes = require("./routes/exit-interview.route");
+const recruitmentRoutes = require("./routes/recruitment.route");
 const { authMiddleware } = require("./middleware/auth.middleware");
 
 const app = express();
@@ -190,6 +191,7 @@ app.use("/api/v1/offboarding",    authMiddleware, offboardingRoutes);
 app.use("/api/v1/asset-handover", authMiddleware, assetHandoverRoutes);
 app.use("/api/v1/job-handover", authMiddleware, jobHandoverRoutes);
 app.use("/api/v1/exit-interview", authMiddleware, exitInterviewRoutes);
+app.use("/api/v1/recruitment",   authMiddleware, recruitmentRoutes);
 
 // Send template test email using user's default email config
 const emailConfigController = require("./controllers/email-config.controller");

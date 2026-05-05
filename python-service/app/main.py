@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
-from app.api.v1 import area_route, room_route, user_route, meeting_route, tenant_route, role_route, email_config_route, profile_route, template_route, email_list_route, campaign_route, notification_route, ticket_route, offboarding_route, asset_handover_route, job_handover_route, exit_interview_route
+from app.api.v1 import area_route, room_route, user_route, meeting_route, tenant_route, role_route, email_config_route, profile_route, template_route, email_list_route, campaign_route, notification_route, ticket_route, offboarding_route, asset_handover_route, job_handover_route, exit_interview_route, recruitment_route
 from app.db.database import engine
 from app.db.base import Base
 from sqlalchemy import text
@@ -30,6 +30,7 @@ import app.models.document_approval_log_model  # noqa (DocumentApprovalLog)
 import app.models.asset_handover_model          # noqa (AssetHandover + AssetHandoverStep)
 import app.models.job_handover_model            # noqa (JobHandover + JobHandoverStep)
 import app.models.exit_interview_model          # noqa (ExitInterview + ExitInterviewStep)
+import app.models.recruitment_model            # noqa (RecruitmentJob + CandidateEmail)
 
 # ─── Logger setup ────────────────────────────────────────────────
 logging.basicConfig(
@@ -72,6 +73,17 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("UPDATE offboarding_processes SET dept_code = department WHERE dept_code IS NULL AND department IS NOT NULL"))
         await conn.execute(text("ALTER TABLE asset_handovers ADD COLUMN IF NOT EXISTS created_by VARCHAR(100)"))
         await conn.execute(text("ALTER TABLE document_approval_logs ADD COLUMN IF NOT EXISTS actor_title VARCHAR"))
+        # Email Recruitment Phase 1
+        await conn.execute(text("ALTER TABLE recruitment_jobs ADD COLUMN IF NOT EXISTS description TEXT"))
+        await conn.execute(text("ALTER TABLE candidate_emails ADD COLUMN IF NOT EXISTS thread_id VARCHAR(500)"))
+        # Email Recruitment Phase 2
+        await conn.execute(text("ALTER TABLE recruitment_replies ADD COLUMN IF NOT EXISTS error_message TEXT"))
+        await conn.execute(text("ALTER TABLE recruitment_replies ADD COLUMN IF NOT EXISTS sent_at TIMESTAMPTZ"))
+        # Email Recruitment Phase 3
+        await conn.execute(text("ALTER TABLE recruitment_auto_rules ADD COLUMN IF NOT EXISTS from_name VARCHAR(300)"))
+        await conn.execute(text("ALTER TABLE recruitment_auto_rules ADD COLUMN IF NOT EXISTS reply_subject VARCHAR(1000)"))
+        # Email Recruitment Phase 4 — reply_type (reply | forward)
+        await conn.execute(text("ALTER TABLE recruitment_auto_rules ADD COLUMN IF NOT EXISTS reply_type VARCHAR(20) DEFAULT 'reply'"))
         await conn.execute(text("""
             UPDATE document_approval_logs l
             SET
@@ -160,6 +172,7 @@ app.include_router(offboarding_route.router,      prefix="/api/v1/internal/offbo
 app.include_router(asset_handover_route.router,   prefix="/api/v1/asset-handover",        tags=["Asset Handover"])
 app.include_router(job_handover_route.router,     prefix="/api/v1/job-handover",          tags=["Job Handover"])
 app.include_router(exit_interview_route.router,   prefix="/api/v1/exit-interview",        tags=["Exit Interview"])
+app.include_router(recruitment_route.router,      prefix="/api/v1",                       tags=["Email Recruitment"])
 
 
 @app.get("/", tags=["Health"])
