@@ -224,28 +224,39 @@ async def pull_emails_imap(
     is_gmail = imap_host == GMAIL_IMAP_HOST
     uids = []
 
-    if is_gmail:
-        # aioimaplib.search(*criteria) → gửi: SEARCH <criteria[0]> <criteria[1]> ...
-        # Gmail IMAP hỗ trợ X-GM-RAW như một search key extension
-        try:
-            search_resp = await asyncio.wait_for(
-                client.search("X-GM-RAW", '"category:primary"'),
-                timeout=30,
-            )
-            if search_resp.result == "OK":
-                uids = _parse_uids(search_resp)
-                logger.info(f"[IMAP] Gmail Primary X-GM-RAW: {len(uids)} emails found")
-            else:
-                logger.warning(f"[IMAP] X-GM-RAW not OK ({search_resp.result}), fallback to ALL")
-        except Exception as exc:
-            logger.warning(f"[IMAP] X-GM-RAW failed ({exc}), fallback to ALL")
+    # Map folder value từ frontend sang Gmail X-GM-RAW category
+    GMAIL_CATEGORY_MAP = {
+        "INBOX":            "category:primary",
+        "INBOX_PROMOTIONS": "category:promotions",
+        "INBOX_SOCIAL":     "category:social",
+        "INBOX_UPDATES":    "category:updates",
+        "INBOX_ALL":        None,   # None = lấy toàn bộ INBOX, không filter category
+    }
+
+    if is_gmail and folder in GMAIL_CATEGORY_MAP:
+        category = GMAIL_CATEGORY_MAP[folder]
+        if category:
+            # Dùng X-GM-RAW để filter đúng tab Gmail
+            try:
+                search_resp = await asyncio.wait_for(
+                    client.search("X-GM-RAW", f'"{category}"'),
+                    timeout=30,
+                )
+                if search_resp.result == "OK":
+                    uids = _parse_uids(search_resp)
+                    logger.info(f"[IMAP] Gmail {folder} X-GM-RAW: {len(uids)} emails found")
+                else:
+                    logger.warning(f"[IMAP] X-GM-RAW not OK for {folder}, fallback to ALL")
+            except Exception as exc:
+                logger.warning(f"[IMAP] X-GM-RAW failed ({exc}), fallback to ALL")
 
         if not uids:
-            # Fallback: ALL — dedup bằng message_id trong DB, tránh bỏ sót
+            # INBOX_ALL hoặc fallback: lấy toàn bộ — dedup bằng message_id trong DB
             search_resp = await asyncio.wait_for(client.search("ALL"), timeout=30)
             if search_resp.result == "OK":
                 uids = _parse_uids(search_resp)
     else:
+        # IMAP thường hoặc folder tùy chỉnh: lấy UNSEEN
         search_resp = await asyncio.wait_for(client.search("UNSEEN"), timeout=30)
         if search_resp.result == "OK":
             uids = _parse_uids(search_resp)

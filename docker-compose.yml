@@ -2,6 +2,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: meeting_redis
+    restart: unless-stopped
     command: redis-server --requirepass Quyen20262027 --appendonly yes
     volumes:
       - redis_data:/data
@@ -10,11 +11,13 @@ services:
 
   node-app:
     build: ./node-gateway
+    restart: unless-stopped
     volumes:
       - ./node-gateway/src:/app/src
     environment:
       - REDIS_URL=${REDIS_URL}
       - PYTHON_SERVICE_URL=${PYTHON_SERVICE_URL}
+      - KNOWLEDGE_SERVICE_URL=${KNOWLEDGE_SERVICE_URL}
       - PORT=${PORT}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
@@ -29,6 +32,7 @@ services:
 
   python-app:
     build: ./python-service
+    restart: unless-stopped
     volumes:
       - ./python-service/uploads:/app/uploads
     environment:
@@ -78,6 +82,7 @@ services:
   db:
     image: postgres:15-alpine
     container_name: meeting_db
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}

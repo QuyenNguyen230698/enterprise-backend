@@ -76,6 +76,25 @@ app.use("/docs", swaggerProxy);
 app.use("/openapi.json", swaggerProxy);
 app.use("/static", swaggerProxy);
 
+// -- PROXY KNOWLEDGE API TỪ NODE GATEWAY SANG ENTERPRISE-KNOWLEDGE --
+const KNOWLEDGE_URL = process.env.KNOWLEDGE_SERVICE_URL || "http://host.docker.internal:8001";
+const knowledgeProxy = createProxyMiddleware({
+  target: KNOWLEDGE_URL,
+  changeOrigin: true,
+  pathRewrite: { "^/api/v1/knowledge": "" },
+  on: {
+    proxyReq: (proxyReq) => {
+      // Disable buffering để SSE stream qua ngay lập tức
+      proxyReq.setHeader("X-Accel-Buffering", "no");
+    },
+  },
+  proxyTimeout: 300000,  // 5 phút cho PEB thinking phase
+  timeout: 300000,
+});
+
+// Auth được Python knowledge service tự xử lý (JWT secret khác với Node gateway)
+app.use("/api/v1/knowledge", knowledgeProxy);
+
 // 2. Sử dụng Multer & Express Parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
