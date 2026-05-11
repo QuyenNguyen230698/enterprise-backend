@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
-from app.api.v1 import area_route, room_route, user_route, meeting_route, tenant_route, role_route, email_config_route, profile_route, template_route, email_list_route, campaign_route, notification_route, ticket_route, offboarding_route, asset_handover_route, job_handover_route, exit_interview_route, recruitment_route
+from app.api.v1 import area_route, room_route, user_route, meeting_route, tenant_route, role_route, email_config_route, profile_route, template_route, email_list_route, campaign_route, notification_route, ticket_route, offboarding_route, asset_handover_route, job_handover_route, exit_interview_route, recruitment_route, hrm_document_template_route, hrm_document_route
 from app.db.database import engine
 from app.db.base import Base
 from sqlalchemy import text
@@ -26,11 +26,14 @@ import app.models.notification_model  # noqa
 import app.models.ticket_model        # noqa  (Ticket + TicketComment)
 import app.models.offboarding_model   # noqa  (OffboardingProcess + OffboardingStep)
 import app.models.user_signature_model  # noqa (UserSignature)
+import app.models.signature_otp_model   # noqa (SignatureOtp)
 import app.models.document_approval_log_model  # noqa (DocumentApprovalLog)
 import app.models.asset_handover_model          # noqa (AssetHandover + AssetHandoverStep)
 import app.models.job_handover_model            # noqa (JobHandover + JobHandoverStep)
 import app.models.exit_interview_model          # noqa (ExitInterview + ExitInterviewStep)
 import app.models.recruitment_model            # noqa (RecruitmentJob + CandidateEmail)
+import app.models.hrm_document_template_model  # noqa (HrmDocumentTemplate)
+import app.models.hrm_document_model            # noqa (HrmDocument)
 
 # ─── Logger setup ────────────────────────────────────────────────
 logging.basicConfig(
@@ -84,6 +87,16 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("ALTER TABLE recruitment_auto_rules ADD COLUMN IF NOT EXISTS reply_subject VARCHAR(1000)"))
         # Email Recruitment Phase 4 — reply_type (reply | forward)
         await conn.execute(text("ALTER TABLE recruitment_auto_rules ADD COLUMN IF NOT EXISTS reply_type VARCHAR(20) DEFAULT 'reply'"))
+        # SignHub OTP — rate-limit + attempt tracking columns (table auto-created above)
+        await conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS ix_sig_otp_portal_user_id
+            ON signature_otp_verifications (portal_user_id)
+        """))
+        await conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS ix_sig_otp_verify_token
+            ON signature_otp_verifications (verify_token)
+            WHERE verify_token IS NOT NULL
+        """))
         await conn.execute(text("""
             UPDATE document_approval_logs l
             SET
@@ -113,6 +126,15 @@ async def lifespan(app: FastAPI):
                     OR s.actor_name = ''
                     OR LOWER(s.actor_name) = 'unknown'
                 )
+        """))
+        # HRM Documents — ensure indexes exist (table auto-created above via create_all)
+        await conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS ix_hrm_documents_tenant_status
+            ON hrm_documents (tenant_id, status)
+        """))
+        await conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS ix_hrm_documents_submitted_by
+            ON hrm_documents (submitted_by)
         """))
     yield
 
@@ -173,6 +195,8 @@ app.include_router(asset_handover_route.router,   prefix="/api/v1/asset-handover
 app.include_router(job_handover_route.router,     prefix="/api/v1/job-handover",          tags=["Job Handover"])
 app.include_router(exit_interview_route.router,   prefix="/api/v1/exit-interview",        tags=["Exit Interview"])
 app.include_router(recruitment_route.router,      prefix="/api/v1",                       tags=["Email Recruitment"])
+app.include_router(hrm_document_template_route.router, prefix="/api/v1/internal/hrm/document-templates", tags=["HRM Document Templates"])
+app.include_router(hrm_document_route.router,          prefix="/api/v1/internal/hrm/documents",          tags=["HRM Document Instances"])
 
 
 @app.get("/", tags=["Health"])

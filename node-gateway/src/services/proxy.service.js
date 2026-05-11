@@ -7,6 +7,13 @@ const PYTHON_SERVICE_URL =
 /**
  * Generic request helper — handles axios calls + error normalization.
  */
+class ProxyError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
+
 async function request(method, path, data = null) {
   try {
     const config = { method, url: `${PYTHON_SERVICE_URL}${path}` };
@@ -15,10 +22,8 @@ async function request(method, path, data = null) {
     return response.data;
   } catch (error) {
     let detail = error.response?.data?.detail || error.message;
-    if (typeof detail === "object") {
-      detail = JSON.stringify(detail);
-    }
-    throw new Error(detail);
+    if (typeof detail === "object") detail = JSON.stringify(detail);
+    throw new ProxyError(detail, error.response?.status || 500);
   }
 }
 

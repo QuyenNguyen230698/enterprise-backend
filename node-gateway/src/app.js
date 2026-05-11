@@ -32,6 +32,8 @@ const assetHandoverRoutes = require("./routes/asset-handover.route");
 const jobHandoverRoutes = require("./routes/job-handover.route");
 const exitInterviewRoutes = require("./routes/exit-interview.route");
 const recruitmentRoutes = require("./routes/recruitment.route");
+const hrmDocumentTemplateRoutes = require("./routes/hrm-document-template.route");
+const hrmDocumentRoutes = require("./routes/hrm-document.route");
 const { authMiddleware } = require("./middleware/auth.middleware");
 
 const app = express();
@@ -140,6 +142,11 @@ app.get("/check", (req, res) => {
   });
 });
 
+// Public image proxy — must be registered BEFORE rate-limiter and auth middleware
+// so browser <img> tags (which cannot send JWT) can load signature/avatar images
+const profileController = require("./controllers/profile.controller");
+app.get("/api/v1/profile/signature-image", profileController.proxySignatureImage);
+
 // 4. Giới hạn request
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 phút
@@ -210,7 +217,9 @@ app.use("/api/v1/offboarding",    authMiddleware, offboardingRoutes);
 app.use("/api/v1/asset-handover", authMiddleware, assetHandoverRoutes);
 app.use("/api/v1/job-handover", authMiddleware, jobHandoverRoutes);
 app.use("/api/v1/exit-interview", authMiddleware, exitInterviewRoutes);
-app.use("/api/v1/recruitment",   authMiddleware, recruitmentRoutes);
+app.use("/api/v1/recruitment",            authMiddleware, recruitmentRoutes);
+app.use("/api/v1/hrm/document-templates", authMiddleware, hrmDocumentTemplateRoutes);
+app.use("/api/v1/hrm/documents",          authMiddleware, hrmDocumentRoutes);
 
 // Send template test email using user's default email config
 const emailConfigController = require("./controllers/email-config.controller");
@@ -222,6 +231,7 @@ app.post("/api/v1/public/email/send-test", emailConfigController.publicSendTest)
 // Kích hoạt Real-time Socket
 meetingSocket(io);
 notificationSocket(io);
+
 
 // 5. Xử lý lỗi 404 (Không tìm thấy trang)
 app.use((req, res, next) => {

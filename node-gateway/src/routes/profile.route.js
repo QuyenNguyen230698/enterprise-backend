@@ -20,6 +20,8 @@ router.put("/signature", c.saveSignature);
 router.delete("/signature", c.deleteSignature);
 router.post("/upload-signature", upload.single("file"), c.uploadSignature);
 router.post("/scan-signature", upload.single("file"), c.scanSignature);
+router.post("/signature/send-otp", c.sendSignatureOtp);
+router.post("/signature/verify-otp", c.verifySignatureOtp);
 router.get("/subscriptions/my-subscription", c.mySubscription);
 
 module.exports = router;
