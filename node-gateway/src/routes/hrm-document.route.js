@@ -19,7 +19,7 @@ router.patch("/:id/content", c.saveContent);
 router.post("/:id/steps/:stepNumber/action", c.takeAction);
 
 // Notify next signers
-router.post("/:id/notify", c.notifyDocument);
+router.post("/:id/notify", c.notify);
 router.delete("/:id", c.deleteDocument);
 
 module.exports = router;
