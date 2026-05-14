@@ -630,26 +630,30 @@ async def _send_otp_email(to_email: str, otp_code: str, user_name: str, db: Asyn
 
 
 class OtpSendRequest(BaseModel):
-    portal_user_id: str
+    portal_user_id: Optional[str] = None
 
 
 class OtpVerifyRequest(BaseModel):
-    portal_user_id: str
+    portal_user_id: Optional[str] = None
     otp_code: str
 
 
 @router.post("/profile/signature/send-otp")
 async def send_signature_otp(
     payload: OtpSendRequest,
+    portal_user_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Gửi OTP 6 số đến email của user để xác thực trước khi lưu chữ ký.
-    Rate-limit: không gửi lại trong vòng 60s nếu OTP cũ còn hiệu lực.
     """
+    p_user_id = payload.portal_user_id or portal_user_id
+    if not p_user_id:
+        raise HTTPException(status_code=400, detail="portal_user_id is required (in body or query)")
+
     # Lấy user để lấy email
     result = await db.execute(
-        select(User).where(User.portal_user_id == payload.portal_user_id)
+        select(User).where(User.portal_user_id == p_user_id)
     )
     user = result.scalars().first()
     if not user or not user.email:
@@ -708,16 +712,21 @@ async def send_signature_otp(
 @router.post("/profile/signature/verify-otp")
 async def verify_signature_otp(
     payload: OtpVerifyRequest,
+    portal_user_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Xác thực OTP. Trả về verify_token (HMAC) dùng một lần để PUT /profile/signature.
     SHA-256 timing-safe compare · max 5 attempts · tự xoá sau khi verified.
     """
+    p_user_id = payload.portal_user_id or portal_user_id
+    if not p_user_id:
+        raise HTTPException(status_code=400, detail="portal_user_id is required")
+
     if not payload.otp_code or len(payload.otp_code) != 6 or not payload.otp_code.isdigit():
         raise HTTPException(status_code=400, detail="OTP phải là 6 chữ số.")
 
-    active = await _get_active_otp(payload.portal_user_id, db)
+    active = await _get_active_otp(p_user_id, db)
     if not active:
         raise HTTPException(status_code=400, detail="Mã OTP đã hết hạn hoặc không tồn tại. Vui lòng yêu cầu mã mới.")
 
