@@ -609,7 +609,7 @@ async def _send_otp_email(to_email: str, otp_code: str, user_name: str, db: Asyn
         "port": settings.EMAIL_PORT,
         "username": settings.EMAIL_USER,
         "password": settings.EMAIL_PASS,
-        "use_tls": settings.EMAIL_PORT == 587,
+        "use_tls": settings.EMAIL_PORT == 465,
         "start_tls": settings.EMAIL_PORT == 587,
     }
 

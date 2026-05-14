@@ -23,6 +23,15 @@ class Settings(BaseSettings):
     # AES encryption key for SMTP credentials (Fernet 32-byte URL-safe base64)
     # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     ENCRYPTION_KEY: str = ""
+    
+    # --- CẤU HÌNH EMAIL HỆ THỐNG ---
+    EMAIL_HOST: str = "smtp.gmail.com"
+    EMAIL_PORT: int = 587
+    EMAIL_USER: str = ""
+    EMAIL_PASS: str = ""
+    
+    # --- CẤU HÌNH URL ---
+    BASE_URL: str = "http://localhost:8000"
 
 
 
