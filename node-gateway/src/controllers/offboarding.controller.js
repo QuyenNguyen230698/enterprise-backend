@@ -57,7 +57,13 @@ const offboardingController = {
       );
       if (result.error === "NOT_FOUND") return res.status(404).json({ error: "Không tìm thấy đơn" });
       if (result.error === "FORBIDDEN") return res.status(403).json({ error: result.message || "Không có quyền thao tác" });
-      if (result.error === "MISSING_SIGNATURE") return res.status(400).json({ error: "Bạn cần tạo chữ ký SignHub trước khi phê duyệt offboarding." });
+      if (result.error === "MISSING_SIGNATURE") {
+        return res.status(400).json({
+          error: "MISSING_SIGNATURE",
+          message: "Bạn cần tạo chữ ký SignHub trước khi phê duyệt offboarding.",
+          redirect_url: "/settings/profile?action=open-signature"
+        });
+      }
       res.json(result);
     } catch (e) {
       res.status(e?.response?.status || 400).json({ error: offboardingController._errMessage(e, "Thao tác thất bại") });
@@ -74,7 +80,13 @@ const offboardingController = {
       );
       if (result.error === "NOT_FOUND") return res.status(404).json({ error: "Không tìm thấy đơn" });
       if (result.error === "FORBIDDEN") return res.status(403).json({ error: result.message || "Không có quyền thao tác" });
-      if (result.error === "MISSING_SIGNATURE") return res.status(400).json({ error: "Bạn cần tạo chữ ký SignHub trước khi phê duyệt offboarding." });
+      if (result.error === "MISSING_SIGNATURE") {
+        return res.status(400).json({
+          error: "MISSING_SIGNATURE",
+          message: "Bạn cần tạo chữ ký SignHub trước khi phê duyệt offboarding.",
+          redirect_url: "/settings/profile?action=open-signature"
+        });
+      }
       if (result.error === "BAD_REQUEST") return res.status(400).json({ error: "Handover key không hợp lệ" });
       res.json(result);
     } catch (e) {
@@ -93,7 +105,13 @@ const offboardingController = {
       if (result.error === "NOT_FOUND") return res.status(404).json({ error: "Không tìm thấy đơn" });
       if (result.error === "FORBIDDEN") return res.status(403).json({ error: result.message || "Không có quyền thao tác" });
       if (result.error === "BAD_REQUEST") return res.status(400).json({ error: result.message || "Dữ liệu không hợp lệ" });
-      if (result.error === "MISSING_SIGNATURE") return res.status(400).json({ error: "Bạn cần tạo chữ ký SignHub trước khi ký/xác nhận biên bản." });
+      if (result.error === "MISSING_SIGNATURE") {
+        return res.status(400).json({
+          error: "MISSING_SIGNATURE",
+          message: "Bạn cần tạo chữ ký SignHub trước khi ký/xác nhận biên bản.",
+          redirect_url: "/settings/profile?action=open-signature"
+        });
+      }
       res.json(result);
     } catch (e) {
       res.status(e?.response?.status || 400).json({ error: offboardingController._errMessage(e, "Không thể thao tác timeline biên bản") });
@@ -110,7 +128,13 @@ const offboardingController = {
       );
       if (result.error === "NOT_FOUND") return res.status(404).json({ error: "Không tìm thấy đơn" });
       if (result.error === "FORBIDDEN") return res.status(403).json({ error: result.message || "Không có quyền thao tác" });
-      if (result.error === "MISSING_SIGNATURE") return res.status(400).json({ error: "Bạn cần tạo chữ ký SignHub trước khi phê duyệt offboarding." });
+      if (result.error === "MISSING_SIGNATURE") {
+        return res.status(400).json({
+          error: "MISSING_SIGNATURE",
+          message: "Bạn cần tạo chữ ký SignHub trước khi phê duyệt offboarding.",
+          redirect_url: "/settings/profile?action=open-signature"
+        });
+      }
       if (result.error === "BAD_REQUEST") return res.status(400).json({ error: result.message || "Dữ liệu không hợp lệ" });
       res.json(result);
     } catch (e) {
@@ -150,7 +174,13 @@ const offboardingController = {
       const result = await offboardingService.overrideReturn(req.user, req.params.id, req.body?.reason);
       if (result.error === "NOT_FOUND") return res.status(404).json({ error: "Không tìm thấy đơn" });
       if (result.error === "FORBIDDEN") return res.status(403).json({ error: "Không có quyền thao tác" });
-      if (result.error === "MISSING_SIGNATURE") return res.status(400).json({ error: "Bạn cần tạo chữ ký SignHub trước khi phê duyệt offboarding." });
+      if (result.error === "MISSING_SIGNATURE") {
+        return res.status(400).json({
+          error: "MISSING_SIGNATURE",
+          message: "Bạn cần tạo chữ ký SignHub trước khi phê duyệt offboarding.",
+          redirect_url: "/settings/profile?action=open-signature"
+        });
+      }
       res.json(result);
     } catch (e) {
       res.status(e?.response?.status || 400).json({ error: offboardingController._errMessage(e, "Thao tác thất bại") });
