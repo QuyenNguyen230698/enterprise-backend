@@ -10,6 +10,7 @@ from app.db.database import get_db
 from app.models.campaign_model import Campaign
 from app.models.email_list_model import EmailList, Subscriber
 from app.models.email_config_model import EmailConfig
+from app.models.template_model import Template
 
 router = APIRouter()
 
@@ -57,41 +58,42 @@ class ValidateCapacityRequest(BaseModel):
 
 # ─── Helpers ──────────────────────────────────────────────────────
 
-def _to_response(c: Campaign) -> dict:
-    sender = None
-    if c.sender:
-        try:
-            sender = json.loads(c.sender)
-        except Exception:
-            sender = None
-
-    email_list_ids = []
-    if c.email_list_ids:
-        try:
-            email_list_ids = json.loads(c.email_list_ids)
-        except Exception:
-            email_list_ids = []
-
+def _to_response(c: Campaign, lists_data=None, template_data=None) -> dict:
     recipients = []
     if c.recipients:
         try:
             recipients = json.loads(c.recipients)
         except Exception:
             recipients = []
-
+            
+    sender_data = None
+    if c.sender:
+        try:
+            sender_data = json.loads(c.sender)
+        except Exception:
+            sender_data = None
+    sent_count = c.sent_count or len(recipients)
+    open_count = c.open_count or sum(1 for r in recipients if r.get("opened"))
+    open_rate = round(open_count / sent_count * 100, 1) if sent_count > 0 else 0
+    click_count = 0 # Not tracked yet
+    click_rate = 0
+    
     return {
         "_id": c.id,
         "name": c.name,
         "subject": c.subject,
         "preheader": c.preheader,
-        "sender": sender,
-        "emailListIds": email_list_ids,
-        "templateId": c.template_id,
+        "sender": sender_data,
+        "emailListIds": lists_data if lists_data is not None else (c.email_list_ids or []),
+        "templateId": template_data if template_data is not None else c.template_id,
         "status": c.status,
         "stats": {
             "totalRecipients": len(recipients),
-            "sentCount": c.sent_count,
-            "openCount": c.open_count,
+            "sent": sent_count,
+            "opened": open_count,
+            "clicked": click_count,
+            "openRate": open_rate,
+            "clickRate": click_rate,
         },
         "resendCount": c.resend_count,
         "createdAt": c.created_at.isoformat() if c.created_at else None,
@@ -164,9 +166,9 @@ async def get_campaign_dashboard(
             "status": c.status,
             "createdAt": c.created_at.isoformat() if c.created_at else None,
             "stats": {
-                "totalRecipients": sent,
-                "sentCount": sent,
-                "openCount": opened,
+                "totalRecipients": len(recipients),
+                "sent": sent,
+                "opened": opened,
                 "openRate": open_rate,
                 "clickRate": 0,
             },
@@ -201,13 +203,18 @@ async def list_campaigns(
     portal_user_id: str = Query(...),
     limit: int = Query(20, ge=1, le=200),
     page: int = Query(1, ge=1),
+    search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = (
-        select(Campaign)
-        .where(Campaign.portal_user_id == portal_user_id, Campaign.is_active == True)
-        .order_by(Campaign.created_at.desc())
-    )
+    stmt = select(Campaign).where(Campaign.portal_user_id == portal_user_id, Campaign.is_active == True)
+    
+    if search:
+        stmt = stmt.where(Campaign.name.ilike(f"%{search}%"))
+    if status:
+        stmt = stmt.where(Campaign.status == status)
+
+    stmt = stmt.order_by(Campaign.created_at.desc())
 
     count_stmt = select(sql_func.count()).select_from(stmt.subquery())
     total = (await db.execute(count_stmt)).scalar()
@@ -230,7 +237,27 @@ async def get_campaign(
     db: AsyncSession = Depends(get_db),
 ):
     c = await _get_campaign_or_404(campaign_id, portal_user_id, db)
-    return {"success": True, "data": _to_response(c)}
+    
+    lists_data = []
+    if c.email_list_ids:
+        list_ids = [int(i) for i in c.email_list_ids if str(i).isdigit()]
+        if list_ids:
+            res_lists = await db.execute(select(EmailList).where(EmailList.id.in_(list_ids)))
+            for lst in res_lists.scalars().all():
+                lists_data.append({
+                    "_id": lst.id,
+                    "name": lst.name,
+                    "stats": {"activeSubscribers": getattr(lst, "member_count", 0)}
+                })
+                
+    template_data = c.template_id
+    if c.template_id and str(c.template_id).isdigit():
+        res_tpl = await db.execute(select(Template).where(Template.id == int(c.template_id)))
+        tpl = res_tpl.scalar_one_or_none()
+        if tpl:
+            template_data = {"_id": tpl.id, "name": tpl.name, "category": getattr(tpl, "category", "Mặc định")}
+
+    return {"success": True, "data": _to_response(c, lists_data, template_data)}
 
 
 @router.post("/campaigns", status_code=201)
@@ -247,8 +274,10 @@ async def create_campaign(
         name=data.name,
         subject=data.subject,
         preheader=data.preheader,
+        sender_name=data.sender.name if data.sender and data.sender.name else "No Name",
+        sender_email=data.sender.email if data.sender and data.sender.email else "no-reply@example.com",
         sender=json.dumps(data.sender.dict()) if data.sender else None,
-        email_list_ids=json.dumps([str(i) for i in (data.emailListIds or [])]),
+        email_list_ids=[str(i) for i in (data.emailListIds or [])],
         template_id=str(data.templateId) if data.templateId else None,
         status="draft",
     )
@@ -275,8 +304,10 @@ async def update_campaign(
         c.preheader = data.preheader
     if data.sender is not None:
         c.sender = json.dumps(data.sender.dict())
+        c.sender_name = data.sender.name if data.sender.name else "No Name"
+        c.sender_email = data.sender.email if data.sender.email else "no-reply@example.com"
     if data.emailListIds is not None:
-        c.email_list_ids = json.dumps([str(i) for i in data.emailListIds])
+        c.email_list_ids = [str(i) for i in data.emailListIds]
     if data.templateId is not None:
         c.template_id = str(data.templateId)
 
@@ -308,10 +339,7 @@ async def load_recipients(
 
     list_ids = []
     if c.email_list_ids:
-        try:
-            list_ids = [int(i) for i in json.loads(c.email_list_ids)]
-        except Exception:
-            list_ids = []
+        list_ids = [int(i) for i in c.email_list_ids if str(i).isdigit()]
 
     if not list_ids:
         raise HTTPException(status_code=422, detail="Campaign không có email list nào")
@@ -388,8 +416,63 @@ async def get_tracking_data(
             recipients = json.loads(c.recipients)
         except Exception:
             recipients = []
-
+            
     return {"success": True, "data": recipients}
+
+
+@router.post("/campaigns/{campaign_id}/pause")
+async def pause_campaign(
+    campaign_id: int,
+    portal_user_id: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Tạm dừng campaign."""
+    c = await _get_campaign_or_404(campaign_id, portal_user_id, db)
+    if c.status != "sending":
+        raise HTTPException(status_code=422, detail="Chỉ có thể tạm dừng campaign đang gửi")
+
+    c.status = "paused"
+    await db.commit()
+    return {"success": True}
+
+
+@router.post("/campaigns/{campaign_id}/resume")
+async def resume_campaign(
+    campaign_id: int,
+    portal_user_id: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Tiếp tục campaign đã tạm dừng."""
+    c = await _get_campaign_or_404(campaign_id, portal_user_id, db)
+    if c.status != "paused":
+        raise HTTPException(status_code=422, detail="Chỉ có thể tiếp tục campaign đang tạm dừng")
+
+    c.status = "sending"
+    await db.commit()
+    return {"success": True}
+
+
+@router.post("/campaigns/{campaign_id}/recalculate-stats")
+async def recalculate_stats(
+    campaign_id: int,
+    portal_user_id: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Tính toán lại các chỉ số thống kê của campaign."""
+    c = await _get_campaign_or_404(campaign_id, portal_user_id, db)
+    
+    recipients = []
+    if c.recipients:
+        try:
+            recipients = json.loads(c.recipients)
+        except Exception:
+            recipients = []
+
+    c.sent_count = len([r for r in recipients if r.get("sentAt")])
+    c.open_count = len([r for r in recipients if r.get("opened")])
+    
+    await db.commit()
+    return {"success": True, "data": _to_response(c)}
 
 
 @router.post("/email-config/validate-capacity")

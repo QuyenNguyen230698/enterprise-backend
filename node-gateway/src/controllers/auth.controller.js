@@ -7,7 +7,7 @@ const getOAuthClient = (redirectUri) => {
   return new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    redirectUri
+    redirectUri,
   );
 };
 
@@ -19,13 +19,18 @@ const getOAuthClient = (redirectUri) => {
 exports.googleLogin = async (req, res, next) => {
   try {
     const { code, redirect_uri } = req.body;
-    const client = getOAuthClient(redirect_uri || process.env.GOOGLE_REDIRECT_URI || "http://localhost:4995/callback");
+    const client = getOAuthClient(
+      redirect_uri ||
+        process.env.GOOGLE_REDIRECT_URI ||
+        "http://localhost:4995/callback",
+    );
 
     if (!code) {
       throw createError(400, "Google Auth Code is required.");
     }
 
-    const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || "http://python-app:8000";
+    const PYTHON_SERVICE_URL =
+      process.env.PYTHON_SERVICE_URL || "http://python-app:8000";
 
     // 1. Exchange code for tokens
     const { tokens } = await client.getToken(code);
@@ -44,7 +49,7 @@ exports.googleLogin = async (req, res, next) => {
     let resolvedTenantId = null;
     try {
       const tenantRes = await axios.get(
-        `${PYTHON_SERVICE_URL}/api/v1/tenants/by-domain?domain=${encodeURIComponent(emailDomain)}`
+        `${PYTHON_SERVICE_URL}/api/v1/tenants/by-domain?domain=${encodeURIComponent(emailDomain)}`,
       );
       resolvedTenantId = tenantRes.data.tenant_id;
     } catch (_) {
@@ -64,12 +69,15 @@ exports.googleLogin = async (req, res, next) => {
     };
     if (resolvedTenantId) upsertPayload.tenant_id = resolvedTenantId;
 
-    const upsertResponse = await axios.post(`${PYTHON_SERVICE_URL}/api/v1/users/`, upsertPayload);
+    const upsertResponse = await axios.post(
+      `${PYTHON_SERVICE_URL}/api/v1/users/`,
+      upsertPayload,
+    );
     const upsertedUser = upsertResponse.data;
 
     // 5. Re-fetch user để lấy role_id hiện tại từ DB
     const userResponse = await axios.get(
-      `${PYTHON_SERVICE_URL}/api/v1/users/portal/${upsertedUser.portal_user_id}`
+      `${PYTHON_SERVICE_URL}/api/v1/users/portal/${upsertedUser.portal_user_id}`,
     );
     const user = userResponse.data;
 
@@ -80,11 +88,11 @@ exports.googleLogin = async (req, res, next) => {
     if (resolvedTenantId && user.portal_user_id) {
       try {
         const tenantRes = await axios.get(
-          `${PYTHON_SERVICE_URL}/api/v1/tenants/${resolvedTenantId}`
+          `${PYTHON_SERVICE_URL}/api/v1/tenants/${resolvedTenantId}`,
         );
         const tenantAdmins = tenantRes.data?.admins || [];
         const adminEntry = tenantAdmins.find(
-          (a) => a.portal_user_id === user.portal_user_id && a.is_active
+          (a) => a.portal_user_id === user.portal_user_id && a.is_active,
         );
         if (adminEntry) {
           // Tenant admin: map is_super_admin → role_id tương ứng
@@ -101,7 +109,7 @@ exports.googleLogin = async (req, res, next) => {
     let permissionNames = [];
     try {
       const roleRes = await axios.get(
-        `${PYTHON_SERVICE_URL}/api/v1/roles/${roleId}`
+        `${PYTHON_SERVICE_URL}/api/v1/roles/${roleId}`,
       );
       roleData = roleRes.data;
       // roleData.permission_objects = [{permission_id, name, ...}]
@@ -133,7 +141,7 @@ exports.googleLogin = async (req, res, next) => {
         permissions,
       },
       process.env.JWT_SECRET,
-      { expiresIn: `${process.env.JWT_EXPIRATION_HOURS || 24}h` }
+      { expiresIn: `${process.env.JWT_EXPIRATION_HOURS || 24}h` },
     );
 
     res.status(200).json({

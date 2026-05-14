@@ -568,18 +568,15 @@ async def _get_active_otp(portal_user_id: str, db: AsyncSession) -> Optional[Sig
 
 async def _send_otp_email(to_email: str, otp_code: str, user_name: str, db: AsyncSession) -> None:
     import aiosmtplib
+    import logging
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
-    from app.models.email_config_model import EmailConfig
-    from app.api.v1.email_config_route import _get_smtp_params
+    from app.core.config import settings
 
-    result = await db.execute(
-        select(EmailConfig)
-        .where(EmailConfig.portal_user_id != None, EmailConfig.is_active == True)
-        .order_by(EmailConfig.is_default.desc(), EmailConfig.created_at.desc())
-        .limit(1)
-    )
-    cfg = result.scalars().first()
+    # --- Kiểm tra cấu hình hệ thống ---
+    if not settings.EMAIL_USER or not settings.EMAIL_PASS:
+        logging.getLogger("api.access").error(f"[SignHub OTP] Hệ thống chưa cấu hình EMAIL_USER/EMAIL_PASS trong .env. Không thể gửi OTP cho {to_email}")
+        return
 
     html_body = f"""
     <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#fff;border-radius:12px;border:1px solid #e5e7eb">
@@ -606,26 +603,30 @@ async def _send_otp_email(to_email: str, otp_code: str, user_name: str, db: Asyn
     </div>
     """
 
-    if cfg:
-        smtp_params = await _get_smtp_params(cfg)
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"[SignHub] Mã OTP xác thực chữ ký: {otp_code}"
-        msg["From"] = f"{cfg.sender_name} <{cfg.sender_email}>"
-        msg["To"] = to_email
-        # Web OTP API hint — browser/mobile email client dùng để autocomplete
-        msg["X-OTP-Code"] = otp_code
-        msg.attach(MIMEText(html_body, "html"))
-        try:
-            await aiosmtplib.send(msg, **smtp_params)
-            return
-        except Exception:
-            pass  # fallback: log nhưng không block — OTP vẫn được tạo
+    # --- Cấu hình SMTP lấy từ hệ thống (.env) ---
+    smtp_params = {
+        "hostname": settings.EMAIL_HOST,
+        "port": settings.EMAIL_PORT,
+        "username": settings.EMAIL_USER,
+        "password": settings.EMAIL_PASS,
+        "use_tls": settings.EMAIL_PORT == 587,
+        "start_tls": settings.EMAIL_PORT == 587,
+    }
 
-    # Fallback: log ra console (development / chưa có email config)
-    import logging
-    logging.getLogger("api.access").warning(
-        f"[SignHub OTP] No email config — OTP for {to_email}: {otp_code}"
-    )
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"[SignHub] Mã OTP xác thực chữ ký: {otp_code}"
+    msg["From"] = f"SignHub System <{settings.EMAIL_USER}>"
+    msg["To"] = to_email
+    msg["X-OTP-Code"] = otp_code
+    msg.attach(MIMEText(html_body, "html"))
+
+    try:
+        await aiosmtplib.send(msg, **smtp_params)
+        logging.getLogger("api.access").info(f"[SignHub OTP] Đã gửi OTP thành công tới {to_email} bằng email hệ thống.")
+    except Exception as e:
+        logging.getLogger("api.access").error(f"[SignHub OTP] Lỗi khi gửi email tới {to_email}: {str(e)}")
+
+
 
 
 class OtpSendRequest(BaseModel):
